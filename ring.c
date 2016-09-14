@@ -1,3 +1,4 @@
+#include <linux/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,21 +23,39 @@ short ring_destroy(ringp r)
 
 void *ring_put(ringp r, const void *content, int size)
 {
-        // boundary check
+        /* boundary check */
         int overflow = size - (r->size - (r->curr - r->first));
-        printf("overflow: %d, overwrite\n", overflow);
+        int of;
+        /*
+         * this can be hugely optimized by calculating and applying
+         * the final state directly
+         * */
+        while (1) {
+                of = overflow;
+                // no overflow
+                if (of <= 0) {
+                        strncpy(r->curr, content, size);
+                        if (overflow == 0)
+                                return r->curr = r->first;
+                        return r->curr += size + 1;
+                }
 
-        // no overflow
-        if (overflow <= 0) {
-                strncpy(r->curr + 1, content, size);
-                if (overflow == 0)
-                        return r->curr = r->first;
-                return r->curr += size;
+                if (of > r->size)
+                        of = r->size;
+                size_t rest = size - of;
+                strncpy(r->curr, content, rest);
+                strncpy(r->first, content + rest, of);
+                if (overflow <= r->size)
+                        return r->curr = r->first + of;
+                else
+                        overflow -= r->size;
         }
+}
 
-        strncpy(r->curr + 1, content, size - overflow);
-        strncpy(r->first, content, overflow);
-        return r->curr = r->first + overflow;
+void ring_clear(ringp r)
+{
+        memset(r->first, 0, r->size);
+        r->curr = r->first;
 }
 
 int main(int argc, char **argv)
@@ -44,9 +63,14 @@ int main(int argc, char **argv)
         ringp r = ring_init(10);
         printf("ring: %p, size: %d, fisrt: %p\n",
                         r, r->size, r->first);
-        const char *str = "1234567";
-        ring_put(r, str, strlen(str) + 1);
-        printf("put: %s, curr: %p\n", (char *)r->first, r->curr);
+        const char *str = "1234567890123";
+        int i;
+        for (i = 0; i < 10; i++) {
+                ring_put(r, str, strlen(str) + 1);
+                printf("buffer: %s, curr: %p\n", (char *)r->first, r->curr);
+        }
+        ring_clear(r);
+        printf("buffer: %s, curr: %p\n", (char *)r->first, r->curr);
         ring_destroy(r);
         return 0;
 }

@@ -1,7 +1,8 @@
 typedef struct {
         int size;
-        void *first;
-        // current UNUSED position
+        void *head;
+        void *tail;
+        /* current UNUSED position */
         void *curr;
 } Ring;
 typedef Ring *ringp;

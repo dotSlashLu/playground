@@ -4,19 +4,19 @@
 #include <string.h>
 #include "ring.h"
 
-ringp ring_init(int size)
+ringp ring_init(ringp r, int size)
 {
-        ringp ring = calloc(sizeof(Ring), 1);
         void *buffer = calloc(size, 1);
-        ring->size = size;
-        ring->head = ring->curr = buffer;
-        ring->tail = ring->head + size;
-        return ring;
+        r->size = size;
+        r->head = r->curr = buffer;
+        r->tail = r->head + size;
+        return r;
 }
 
 
 short ring_destroy(ringp r)
 {
+        /* invalid next size on debian... */
         free(r->head);
         free(r);
         return 1;
@@ -25,6 +25,7 @@ short ring_destroy(ringp r)
 void *ring_put(ringp r, const void *content, int size)
 {
         /* boundary check */
+        /* problem: can we ensure tail is behind curr? */
         int overflow = size - (r->tail - r->curr);
         int of;
         /*
@@ -61,10 +62,11 @@ void ring_clear(ringp r)
 
 int main(int argc, char **argv)
 {
-        ringp r = ring_init(10);
+        ringp r = calloc(sizeof(Ring), 1);
+        ring_init(r, 10);
         printf("ring: %p, size: %d, fisrt: %p\n",
                         r, r->size, r->head);
-        const char *str = "1234567890123";
+        const char *str = "12345678901234";
         int i;
         for (i = 0; i < 10; i++) {
                 ring_put(r, str, strlen(str) + 1);

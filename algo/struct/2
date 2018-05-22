@@ -1,4 +1,0 @@
-0 1 2 3 
-s->next:0x254c050 n:0x254c050 &(s->next):0x254c078 &n:0x7ffd482fa648
-a.val 1 b.val 0
-1 0 2 3 
